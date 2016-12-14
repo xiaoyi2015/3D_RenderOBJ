@@ -59,6 +59,9 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
     private float lastX;
     private float lastY;
 
+    public GLDraw getGlDraw() {
+        return glDraw;
+    }
 
     public MyGLView(Context context, AttributeSet attrs) {
         super(context, attrs);

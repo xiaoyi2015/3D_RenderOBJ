@@ -54,12 +54,14 @@ public class GLDraw {
     private int POINT_SIZE = 32;
     private int POINT_SIZE_POS_OFFSET = 0;
     private int POINT_SIZE_NOR_OFFSET = 16;
-    //private int MV_MATRIX_LOCATION = 0;
-    //private int MVP_MATRIX_LOCATION = 1;
     private float[] modelMatrix = new float[16];
 
     {
         setIdentityM(modelMatrix, 0);
+    }
+
+    public float[] getMatrix(){
+        return modelMatrix;
     }
 
     public GLDraw(int num) {

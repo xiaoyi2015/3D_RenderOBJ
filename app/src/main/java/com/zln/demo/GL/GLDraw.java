@@ -36,6 +36,7 @@ import static android.opengl.GLES20.glUseProgram;
 import static android.opengl.GLES20.glVertexAttribPointer;
 import static android.opengl.GLU.gluErrorString;
 import static android.opengl.Matrix.multiplyMM;
+import static android.opengl.Matrix.scaleM;
 import static android.opengl.Matrix.setIdentityM;
 import static android.opengl.Matrix.setRotateM;
 
@@ -181,8 +182,13 @@ public class GLDraw {
 
     public void rotate(Vec2 v) {
         float[] sTemp = new float[16];
-        setRotateM(sTemp, 0, 5, v.x, v.y, 0);
+        setRotateM(sTemp, 0, 6, v.x, v.y, 0);
         multiplyMM(modelMatrix, 0, sTemp, 0, modelMatrix, 0);
 
+    }
+
+    public void scale(float scale) {
+
+        scaleM(modelMatrix, 0, scale, scale, scale);
     }
 }

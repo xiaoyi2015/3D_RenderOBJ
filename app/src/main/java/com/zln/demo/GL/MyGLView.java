@@ -7,6 +7,8 @@ import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.AttributeSet;
+import android.util.FloatMath;
+import android.util.Log;
 import android.view.MotionEvent;
 
 import com.zln.demo.Util.Parse;
@@ -20,6 +22,7 @@ import java.nio.ByteBuffer;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import static android.R.attr.breadCrumbShortTitle;
 import static android.R.attr.mode;
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_CULL_FACE;
@@ -56,8 +59,6 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
     private int textureId;
     private float aspect;
     private GLDraw glDraw;
-    private float lastX;
-    private float lastY;
 
     public GLDraw getGlDraw() {
         return glDraw;
@@ -180,10 +181,16 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
         return obj;
     }
 
-
+    private float lastX;
+    private float lastY;
+    private float lastX1;
+    private float lastY1;
+    private float oldDis;
+    private int mode = 0;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         super.onTouchEvent(event);
+
         event.getAction();
         event.getActionIndex();
         event.getActionMasked();
@@ -191,27 +198,50 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
             case MotionEvent.ACTION_DOWN:
                 lastX = event.getX();
                 lastY = event.getY();
+                mode = 0;
                 break;
 
             case MotionEvent.ACTION_POINTER_DOWN:
+                mode = 1;
+                oldDis = spacing(event);
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                mode = 0;
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                float deltaX = event.getX() - lastX;
-                float deltaY = event.getY() - lastY;
-                if (deltaX == 0 || deltaY == 0) {
-                    break;
+                if (mode == 1) {
+                    float nowDis = spacing(event);
+                    float scale = (float)Math.sqrt(nowDis / oldDis);
+                    glDraw.scale(scale);
+                    oldDis = spacing(event);
+                    requestRender();
+
+                } else {
+                    float deltaX = event.getX() - lastX;
+                    float deltaY = event.getY() - lastY;
+                    if (deltaX == 0 || deltaY == 0) {
+                        break;
+                    }
+                    glDraw.rotate(new Vec2(deltaY, deltaX));
+                    lastX = event.getX(0);
+                    lastY = event.getY(0);
+                    requestRender();
                 }
-                glDraw.rotate(new Vec2(deltaY, deltaX));
-                lastX = event.getX();
-                lastY = event.getY();
-                requestRender();
+
                 break;
             case MotionEvent.ACTION_UP:
                 break;
 
         }
+
         return true;
+    }
+
+    private float spacing(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
     }
 
 }

@@ -1,22 +1,18 @@
 
-uniform mat4 mvMatrix;
-uniform mat4 mvpMatrix;
+uniform mat4 uMVMatrix;
+uniform mat4 uMVPMatrix;
 
-attribute vec4 position;
-attribute vec4 normal;
+attribute vec4 aPosition;
+attribute vec4 aNormal;
 
-
-varying vec3 Normal;
-varying vec2 TexCoord;
-varying vec4 Position;
+varying vec3 vNormal;
+varying vec2 vTexel;
 
 void main() {
-    vec4 p = vec4(position.xyz, 1);
 
-    //根据总变换矩阵计算此次绘制此顶点位置
-    gl_Position = mvpMatrix*p;
+    vec4 p = vec4(aPosition.xyz, 1);
+    gl_Position = uMVPMatrix * p;
 
-    Normal = normalize((mvMatrix * vec4(normal.xyz, 0)).xyz);
-    Position = mvMatrix * p;
-    TexCoord = vec2(position.w, normal.w);
+    vNormal = normalize((uMVMatrix * vec4(aNormal.xyz, 0)).xyz);
+    vTexel = vec2(aPosition.w, aNormal.w);
 }

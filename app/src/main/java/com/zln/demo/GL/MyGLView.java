@@ -18,6 +18,8 @@ import com.zln.demo.Util.Vec3;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -30,6 +32,7 @@ import static android.opengl.GLES20.GL_DEPTH_BUFFER_BIT;
 import static android.opengl.GLES20.GL_DEPTH_TEST;
 import static android.opengl.GLES20.GL_LEQUAL;
 import static android.opengl.GLES20.GL_LINEAR;
+import static android.opengl.GLES20.GL_REPEAT;
 import static android.opengl.GLES20.GL_STATIC_DRAW;
 import static android.opengl.GLES20.GL_TEXTURE_2D;
 import static android.opengl.GLES20.GL_TEXTURE_MAG_FILTER;
@@ -51,12 +54,13 @@ import static android.opengl.GLES20.glViewport;
 
 public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
 
+    //chuang  zuozi
     private final float[] mViewMatrix = new float[16];
     private final float[] mProjectionMatrix = new float[16];
-    private Parse obj = ReadObj("bishop.obj");
+    private Parse obj = ReadObjAndMtl("zuozi.obj", "zuozi.mtl");
     private GLB vertexBuffer;
     private GLB indexBuffer;
-    private int textureId;
+    private List<Integer> textureId = new ArrayList<>();
     private float aspect;
     private GLDraw glDraw;
 
@@ -87,32 +91,36 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
         glInitTexture();
 
         //init draw program
-        glDraw = new GLDraw(obj.getIndexNumber());
+        glDraw = new GLDraw(obj);
         glDraw.glOnSurfaceCreated(getContext());
     }
 
     private void glInitTexture() {
-        int[] textureIds = new int[1];
-        glGenTextures(1, textureIds, 0);
-        glBindTexture(GL_TEXTURE_2D, textureIds[0]);
-        textureId = textureIds[0];
-        try {
-            GLUtils.texImage2D(GL_TEXTURE_2D, 0, BitmapFactory.decodeStream(getContext().getAssets().open("clay.png")), 0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        int n = obj.getNum();
+        int[] textureIds = new int[n];
+        glGenTextures(n, textureIds, 0);
+        for(int i = 0; i < n; i ++) {
+            glBindTexture(GL_TEXTURE_2D, textureIds[i]);
+            textureId.add(textureIds[i]);
+            //Log.v("zln-tex: ", obj.getTexFilenames().get(i));
+            try {
+                GLUtils.texImage2D(GL_TEXTURE_2D, 0, BitmapFactory.decodeStream(getContext().getAssets().open(obj.getTexFilenames().get(i))), 0);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        }
     }
 
     private void glInitBuffer() {
         ByteBuffer vertexData = obj.getVertexes();
         vertexBuffer = GLB.glGenBuffer(1).glSyncWithGPU(vertexData, vertexData.limit(), GL_STATIC_DRAW);
 
-        ByteBuffer indexData = obj.getIndexes();
+        ByteBuffer indexData = obj.getIndices();
         indexBuffer = GLB.glGenBuffer(2).glSyncWithGPU(indexData, indexData.limit(), GL_STATIC_DRAW);
 
     }
@@ -147,8 +155,8 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
     public void onDrawFrame(GL10 gl10) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        glDraw.glOnDrawFrame(mViewMatrix, mProjectionMatrix, vertexBuffer, indexBuffer);
+        glDraw.glOnDrawFrame(mViewMatrix, mProjectionMatrix, vertexBuffer,
+                indexBuffer, textureId);
     }
 
     private void init() {
@@ -156,15 +164,18 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
         setEGLContextClientVersion(2);
         setRenderer(this);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        //glEnable(GL_CULL_FACE);
 
     }
 
 
-    private Parse ReadObj(String objFileName) {
+    private Parse ReadObjAndMtl(String objFileName, String mtlFileName) {
+
         InputStream inputStream;
+        InputStream inputStream2;
         try {
             inputStream = getContext().getAssets().open(objFileName);
+            inputStream2 = getContext().getAssets().open(mtlFileName);
+
             //如果从网上下载，则用下面导入路径文件流的
             //inputStream = new FileInputStream(new File(getContext().getExternalCacheDir(), objFileName));
         } catch (IOException e) {
@@ -173,7 +184,7 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
         }
         Parse obj;
         try {
-            obj = new Parse(inputStream);
+            obj = new Parse(inputStream, inputStream2);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException();
@@ -183,8 +194,6 @@ public class MyGLView extends GLSurfaceView implements GLSurfaceView.Renderer{
 
     private float lastX;
     private float lastY;
-    private float lastX1;
-    private float lastY1;
     private float oldDis;
     private int mode = 0;
     @Override

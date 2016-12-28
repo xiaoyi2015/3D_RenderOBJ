@@ -3,25 +3,54 @@ precision mediump float;
 
 uniform sampler2D uTexture;
 
-vec4 uLightPosition = vec4(-20f, 10.0f, 20f, 1.0f);
-vec4 uAmbient = vec4(0.3f, 0.3f, 0.3f, 1.0f);
-vec4 uDiffuse = vec4(0.6f, 0.6f, 0.6f, 1.0f);
+uniform vec3 uDiffuse;
+uniform vec3 uSpecular;
 
-//data from vertex shader
-varying vec4 Position;
-varying vec3 Normal;
-varying vec2 TexCoord;
+varying vec3 vNormal;
+varying vec2 vTexel;
 
 void main(){
 
-    float dis = length(uLightPosition - Position);
-    vec4 lightVector = normalize(uLightPosition - Position);
-    vec4 diffuse = uDiffuse * max(dot(vec3(lightVector), Normal), 0.0);
+        // Material
+        vec3 ka = vec3(0.05);
+        vec3 kd = uDiffuse;
+        vec3 ks = uSpecular;
+        float alpha = 1.0;
 
-    vec4 color;
-    color = texture2D(uTexture, TexCoord) * (diffuse + uAmbient);
+        // Light
+        vec3 ia = vec3(1.0);
+        vec3 id = vec3(1.0);
+        vec3 is = vec3(1.0);
 
-    //color = vec4(0.0,1.0,0.0,1.0);
-    gl_FragColor = color;
+        // Vectors
+        vec3 L = normalize(vec3(1.0, 1.0, 1.0));
+        vec3 N = normalize(vNormal);
+        vec3 V = normalize(vec3(0.0, 0.0, 1.0));
+        vec3 R = reflect(L, N);
+
+        // Illumination factors
+        float df = max(0.0, dot(L, N));
+        float sf = pow(max(0.0, dot(R, V)), alpha);
+
+        // Phong reflection equation
+        vec3 Ip = ka*ia + kd*id*df + ks*is*sf;
+
+        vec2 tex = vTexel;
+        while(tex.x < 0.0) tex.x = tex.x + 1.0;
+        while(tex.x > 1.0) tex.x = tex.x - 1.0;
+        while(tex.y < 0.0) tex.y = tex.y + 1.0;
+        while(tex.y > 1.0) tex.y = tex.y - 1.0;
+
+        // Decal
+        vec4 decal = texture2D(uTexture, tex);
+
+        // Surface
+        vec3 surface;
+        if(decal.a > 0.0)
+            surface = decal.rgb*df + decal.rgb*sf;
+        else
+            surface = Ip;
+
+        gl_FragColor = vec4(surface, 1.0);
 
 }

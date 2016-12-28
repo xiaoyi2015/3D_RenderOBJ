@@ -5,6 +5,7 @@ import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import com.zln.demo.Util.Parse;
 import com.zln.demo.Util.Vec2;
 
 import java.io.BufferedReader;
@@ -19,10 +20,12 @@ import static android.opengl.GLES20.GL_ARRAY_BUFFER;
 import static android.opengl.GLES20.GL_ELEMENT_ARRAY_BUFFER;
 import static android.opengl.GLES20.GL_FLOAT;
 import static android.opengl.GLES20.GL_FRAGMENT_SHADER;
+import static android.opengl.GLES20.GL_TEXTURE_2D;
 import static android.opengl.GLES20.GL_TRIANGLES;
 import static android.opengl.GLES20.GL_UNSIGNED_INT;
 import static android.opengl.GLES20.GL_VERTEX_SHADER;
 import static android.opengl.GLES20.glBindBuffer;
+import static android.opengl.GLES20.glBindTexture;
 import static android.opengl.GLES20.glCreateProgram;
 import static android.opengl.GLES20.glDrawElements;
 import static android.opengl.GLES20.glEnableVertexAttribArray;
@@ -31,6 +34,8 @@ import static android.opengl.GLES20.glGetAttribLocation;
 import static android.opengl.GLES20.glGetError;
 import static android.opengl.GLES20.glGetUniformLocation;
 import static android.opengl.GLES20.glLinkProgram;
+import static android.opengl.GLES20.glUniform3f;
+import static android.opengl.GLES20.glUniform3fv;
 import static android.opengl.GLES20.glUniformMatrix4fv;
 import static android.opengl.GLES20.glUseProgram;
 import static android.opengl.GLES20.glVertexAttribPointer;
@@ -48,10 +53,8 @@ import static android.opengl.Matrix.setRotateM;
 public class GLDraw {
 
     private List<Shader> shaders = new ArrayList<>();
+    private Parse obj;
     private int id;
-    private int Num;
-    //private int ATTR1_LOCATION = 0;
-    //private int ATTR2_LOCATION = 1;
     private int POINT_SIZE = 32;
     private int POINT_SIZE_POS_OFFSET = 0;
     private int POINT_SIZE_NOR_OFFSET = 16;
@@ -65,18 +68,26 @@ public class GLDraw {
         return modelMatrix;
     }
 
-    public GLDraw(int num) {
-        this.Num = num;
+    public GLDraw(Parse obj) {
+        this.obj = obj;
     }
 
-    public void glOnDrawFrame(float[] mViewMatrix, float[] mProjectionMatrix, GLB vertexBuffer, GLB indexBuffer) {
+    public void glOnDrawFrame(float[] mViewMatrix, float[] mProjectionMatrix, GLB vertexBuffer,
+                              GLB indexBuffer, List<Integer> texIds) {
         glUseProgram(id);
-        //Log.v("zln-id:", id+"");
         initBuffer(vertexBuffer, indexBuffer);
         updateData(mViewMatrix, mProjectionMatrix);
-        glDrawElements(GL_TRIANGLES, Num * 3, GL_UNSIGNED_INT, 0);
-        glFlush();
-        //Log.v("zln-error:", gluErrorString(glGetError()));
+        //Log.v("zln-id:", id+"");
+        for(int i = 0; i < obj.getNum(); i++) {
+            glUniform3f(glGetAttribLocation(id, "uDiffuse"), obj.getDiffuses().get(i).x,
+                    obj.getDiffuses().get(i).y, obj.getDiffuses().get(i).z);
+            glUniform3f(glGetAttribLocation(id, "uSpecular"), obj.getSpeculars().get(i).x,
+                    obj.getSpeculars().get(i).y, obj.getSpeculars().get(i).z);
+            glBindTexture(GL_TEXTURE_2D, texIds.get(i));
+            glDrawElements(GL_TRIANGLES, obj.getCount().get(i), GL_UNSIGNED_INT, obj.getStart().get(i)*4);
+            glFlush();
+
+        }
 
     }
 
@@ -85,13 +96,8 @@ public class GLDraw {
         float[] MVMatrix = new float[16];
         multiplyMM(MVMatrix, 0, mViewMatrix, 0, getModelMatrix(), 0);
         multiplyMM(MVPMatrix, 0, mProjectionMatrix, 0, MVMatrix, 0);
-        glUniformMatrix4fv(glGetUniformLocation(id, "mvMatrix"), 1, false, MVMatrix, 0);
-        glUniformMatrix4fv(glGetUniformLocation(id, "mvpMatrix"), 1, false, MVPMatrix, 0);
-//        for(int i = 0; i < 16; i++)
-//            //Log.v("matrix:    ", MVMatrix[i] + "");
-//
-//        for(int i = 0; i < 16; i++)
-//            //Log.v("matrix2:    ", MVPMatrix[i] + "");
+        glUniformMatrix4fv(glGetUniformLocation(id, "uMVMatrix"), 1, false, MVMatrix, 0);
+        glUniformMatrix4fv(glGetUniformLocation(id, "uMVPMatrix"), 1, false, MVPMatrix, 0);
 
     }
 
@@ -123,16 +129,14 @@ public class GLDraw {
 
     private void initBuffer(GLB vb, GLB ib) {
 
-        glEnableVertexAttribArray(glGetAttribLocation(id, "position"));
-        glEnableVertexAttribArray(glGetAttribLocation(id, "normal"));
+        glEnableVertexAttribArray(glGetAttribLocation(id, "aPosition"));
+        glEnableVertexAttribArray(glGetAttribLocation(id, "aNormal"));
         glBindBuffer(GL_ARRAY_BUFFER, vb.bufferId);
-        //Log.v("zln-bid:", vb.bufferId+"");
-        glVertexAttribPointer(glGetAttribLocation(id, "position"), 4, GL_FLOAT, false, POINT_SIZE, POINT_SIZE_POS_OFFSET);
-        glVertexAttribPointer(glGetAttribLocation(id, "normal"), 4, GL_FLOAT, false, POINT_SIZE, POINT_SIZE_NOR_OFFSET);
-        //glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glVertexAttribPointer(glGetAttribLocation(id, "aPosition"), 4, GL_FLOAT, false, POINT_SIZE, POINT_SIZE_POS_OFFSET);
+        glVertexAttribPointer(glGetAttribLocation(id, "aNormal"), 4, GL_FLOAT, false, POINT_SIZE, POINT_SIZE_NOR_OFFSET);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib.bufferId);
-        //Log.v("zln-bid:", ib.bufferId+"");
 
     }
 

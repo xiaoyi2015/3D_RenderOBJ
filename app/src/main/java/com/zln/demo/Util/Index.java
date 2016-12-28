@@ -14,6 +14,7 @@ public class Index {
     public int a;
     public int b;
     public int c;
+    public int id;
 
     public Index() {
 
